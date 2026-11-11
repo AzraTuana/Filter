@@ -4,7 +4,7 @@ A tool that finds and highlights suspicious signals and AI-writing traces in new
 
 
 
-\## Status
+## Status
 
 
 
