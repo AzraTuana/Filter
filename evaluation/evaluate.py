@@ -8,10 +8,13 @@ from analyzers.ai_signals import analyze_ai, get_score
 
 HC3_URL = "https://huggingface.co/datasets/Hello-SimpleAI/HC3/resolve/refs%2Fconvert%2Fparquet/finance/train/0000.parquet"
 BENCHMARK_URL = "https://huggingface.co/datasets/textsightai/ai-text-detection-benchmark-2026/resolve/refs%2Fconvert%2Fparquet/"
+MULTI_DOMAIN_URL = "https://huggingface.co/datasets/acmc/multi_domain_ai_human_text/resolve/refs%2Fconvert%2Fparquet/default/test/0000.parquet"
 
 RESULTS_FILE = "evaluation/results.md"
 SAMPLE_SIZE = 1000
 THRESHOLDS = [15, 30, 40, 55, 70]
+MAIN_THRESHOLD = 40
+MIN_GROUP_SIZE = 50
 
 
 def download(url, file_name):
@@ -51,6 +54,17 @@ def load_benchmark():
     human_texts += load_benchmark_part("human_pmc_ccby_nonanglophone")
     ai_texts = load_benchmark_part("ai_generated_2026")
     return human_texts, ai_texts
+
+
+def load_multi_domain():
+    path = download(MULTI_DOMAIN_URL, "multi_domain_test.parquet")
+    table = pd.read_parquet(path)
+    table = table[table["attack"] == "none"]
+    scores = []
+    for text in table["text"]:
+        scores.append(get_score(analyze_ai(text)))
+    table = table.assign(score=scores)
+    return table
 
 
 def analyze_group(texts):
@@ -110,6 +124,44 @@ def build_report(title, human_texts, ai_texts):
     return "\n".join(lines)
 
 
+def build_genre_table(table):
+    lines = []
+    lines.append("### Results by kind of text (score " + str(MAIN_THRESHOLD) + " or more counts as flagged)")
+    lines.append("")
+    lines.append("| Kind of text | Human texts | AI texts | AI texts caught | Human texts wrongly flagged | Balanced accuracy |")
+    lines.append("|---|---|---|---|---|---|")
+    for genre in sorted(table["domain"].unique()):
+        part = table[table["domain"] == genre]
+        human_scores = list(part[part["label_text"] == "human"]["score"])
+        ai_scores = list(part[part["label_text"] == "ai"]["score"])
+        if len(human_scores) < MIN_GROUP_SIZE or len(ai_scores) < MIN_GROUP_SIZE:
+            continue
+        caught = percent(count_flagged(ai_scores, MAIN_THRESHOLD), len(ai_scores))
+        false_alarms = percent(count_flagged(human_scores, MAIN_THRESHOLD), len(human_scores))
+        balanced = round((caught + (100 - false_alarms)) / 2, 1)
+        lines.append("| " + genre + " | " + str(len(human_scores)) + " | " + str(len(ai_scores)) + " | "
+                     + str(caught) + "% | " + str(false_alarms) + "% | " + str(balanced) + "% |")
+    lines.append("")
+    return "\n".join(lines)
+
+
+def build_model_table(table):
+    ai_rows = table[table["label_text"] == "ai"]
+    lines = []
+    lines.append("### AI texts caught, by the model that wrote them (score " + str(MAIN_THRESHOLD) + " or more)")
+    lines.append("")
+    lines.append("| Model | Texts | Caught |")
+    lines.append("|---|---|---|")
+    for model in sorted(ai_rows["generator_model"].unique()):
+        scores = list(ai_rows[ai_rows["generator_model"] == model]["score"])
+        if len(scores) < MIN_GROUP_SIZE:
+            continue
+        caught = percent(count_flagged(scores, MAIN_THRESHOLD), len(scores))
+        lines.append("| " + model + " | " + str(len(scores)) + " | " + str(caught) + "% |")
+    lines.append("")
+    return "\n".join(lines)
+
+
 def main():
     report = "# Evaluation results\n\n"
 
@@ -119,6 +171,17 @@ def main():
 
     human_texts, ai_texts = load_benchmark()
     report += build_report("TextSight benchmark (five models, September 2026)", human_texts, ai_texts)
+    report += "\n"
+
+    print("Analyzing the multi-domain dataset, this takes a little longer...")
+    table = load_multi_domain()
+    human_texts = list(table[table["label_text"] == "human"]["text"])
+    ai_texts = list(table[table["label_text"] == "ai"]["text"])
+    report += build_report("Multi-domain test set (11 kinds of text, many models)", human_texts, ai_texts)
+    report += "\n"
+    report += build_genre_table(table)
+    report += "\n"
+    report += build_model_table(table)
 
     print(report)
     with open(RESULTS_FILE, "w", encoding="utf-8") as file:
