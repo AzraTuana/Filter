@@ -8,7 +8,7 @@
 
 | Signal | Human texts | AI texts |
 |---|---|---|
-| Formulaic transitions | 0.1% | 0.2%  |
+| Formulaic transitions | 0.1% | 0.2% |
 | Lists of three | 3.4% | 14.6% |
 | No contractions | 21.4% | 52.0% |
 | Uniform sentence length | 7.2% | 16.4% |
@@ -18,9 +18,9 @@
 | Flag if score is at least | AI texts caught | Human texts wrongly flagged | Balanced accuracy |
 |---|---|---|---|
 | 10 | 66.4% | 29.6% | 68.4% |
-| 25 | 22.3% | 7.6% | 57.4% |
+| 30 | 16.4% | 7.3% | 54.5% |
 | 40 | 9.5% | 2.1% | 53.7% |
-| 60 | 0.0% | 0.0% | 50.0% |
+| 70 | 0.0% | 0.0% | 50.0% |
 
 ## TextSight benchmark (five models, September 2026)
 
@@ -39,6 +39,6 @@
 | Flag if score is at least | AI texts caught | Human texts wrongly flagged | Balanced accuracy |
 |---|---|---|---|
 | 10 | 100.0% | 100.0% | 50.0% |
-| 25 | 78.6% | 27.2% | 75.7% |
+| 30 | 75.0% | 15.1% | 80.0% |
 | 40 | 75.0% | 15.1% | 80.0% |
-| 60 | 0.0% | 0.0% | 50.0% |
+| 70 | 0.0% | 0.0% | 50.0% |
