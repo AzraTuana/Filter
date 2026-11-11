@@ -22,17 +22,25 @@ FILLER_WORDS = [
     "particularly",
 ]
 
+LIST_MARKER_PATTERN = r"^(\d+\.|[-*•])\s+"
 LIST_OF_THREE_PATTERN = r"[^,.;:!?\n]{1,40}, [^,.;:!?\n]{1,40}, and \w+"
+
+def is_heading(line):
+    if line[-1] in ".!?\"”":
+        return False
+    return len(line.split()) <= 12
 
 
 def split_sentences(text):
-    parts = re.split(r"(?<=[.!?])\s+", text.strip())
     sentences = []
-    for part in parts:
-        if part.strip() != "":
-            sentences.append(part.strip())
+    for line in text.splitlines():
+        line = re.sub(LIST_MARKER_PATTERN, "", line.strip())
+        if line == "" or is_heading(line):
+            continue
+        for part in re.split(r"(?<=[.!?])\s+", line):
+            if part.strip() != "":
+                sentences.append(part.strip())
     return sentences
-
 
 def sentence_lengths(text):
     lengths = []
