@@ -40,6 +40,6 @@ def test_score_never_goes_above_100():
 
 
 def test_describe_score():
-    assert describe_score(0) == "Few AI-writing traces"
-    assert describe_score(30) == "Some AI-writing traces"
-    assert describe_score(80) == "Many AI-writing traces"
+    assert describe_score(0) == "Few AI traces found"
+    assert describe_score(30) == "Some AI traces found"
+    assert describe_score(80) == "Many AI traces found"
