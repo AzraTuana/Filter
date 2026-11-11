@@ -1,33 +1,26 @@
 import re
 import statistics
 
-STOCK_PHRASES = [
-    "delve into",
-    "it's important to note",
-    "it is important to note",
-    "it is worth noting",
-    "in today's fast-paced world",
-    "plays a crucial role",
-    "navigate the complexities",
-    "a testament to",
-    "rich tapestry",
-    "in conclusion",
-    "ever-evolving",
-    "unlock the potential",
-]
-
-TRANSITION_WORDS = [
-    "however",
-    "moreover",
-    "furthermore",
-    "additionally",
-    "consequently",
+FILLER_WORDS = [
+    "may",
+    "can",
+    "often",
+    "typically",
+    "various",
+    "several",
+    "such",
+    "including",
+    "while",
+    "both",
+    "range",
+    "significant",
+    "key",
+    "crucial",
+    "essential",
+    "important",
     "overall",
-    "ultimately",
-    "in addition",
+    "particularly",
 ]
-
-CONTRACTION_PATTERN = r"\b(?:\w+n['’]t|\w+['’](?:re|ve|ll|d|m)|(?:it|that|there|what|he|she|let)['’]s)\b"
 
 LIST_OF_THREE_PATTERN = r"[^,.;:!?\n]{1,40}, [^,.;:!?\n]{1,40}, and \w+"
 
@@ -46,6 +39,10 @@ def sentence_lengths(text):
     for sentence in split_sentences(text):
         lengths.append(len(sentence.split()))
     return lengths
+
+
+def get_words(text):
+    return re.findall(r"[A-Za-z']+", text)
 
 
 def get_stats(text):
@@ -69,43 +66,24 @@ def check_uniform_sentences(text):
         return None
     return {
         "name": "Uniform sentence length",
-        "explanation": "Human writers mix short and long sentences. Very even sentence lengths are common in AI generated text.",
+        "explanation": "Human writers mix short and long sentences. Very even sentence lengths are common in AI text.",
         "evidence": ["variation " + str(stats["variation"]) + " (below 0.35)"],
         "points": 30,
     }
 
 
-def check_stock_phrases(text):
-    lowered = text.lower()
-    found = []
-    for phrase in STOCK_PHRASES:
-        if phrase in lowered:
-            found.append(phrase)
-    if len(found) < 2:
+def check_no_short_sentences(text):
+    lengths = sentence_lengths(text)
+    if len(lengths) < 4:
+        return None
+    shortest = min(lengths)
+    if shortest < 14:
         return None
     return {
-        "name": "Stock phrases",
-        "explanation": "These kind of phrases appear far more often in AI generated text than in human writing.",
-        "evidence": found,
+        "name": "No short sentences",
+        "explanation": "People drop in a short sentence now and then. Here even the shortest sentence is long, which is common in AI text.",
+        "evidence": ["shortest sentence has " + str(shortest) + " words (14 or more)"],
         "points": 25,
-    }
-
-
-def check_transition_openers(text):
-    sentences = split_sentences(text)
-    found = []
-    for sentence in sentences:
-        lowered = sentence.lower()
-        for word in TRANSITION_WORDS:
-            if lowered.startswith(word + ","):
-                found.append(word + ",")
-    if len(found) < 3:
-        return None
-    return {
-        "name": "Formulaic transitions",
-        "explanation": "Starting many sentences with words like 'Moreover,' is a habit of AI text.",
-        "evidence": found,
-        "points": 20,
     }
 
 
@@ -123,18 +101,37 @@ def check_lists_of_three(text):
     }
 
 
-def check_no_contractions(text):
-    word_count = len(text.split())
-    if word_count < 80:
+def check_comma_heavy(text):
+    sentence_count = len(split_sentences(text))
+    if sentence_count < 4:
         return None
-    found = re.findall(CONTRACTION_PATTERN, text, flags=re.IGNORECASE)
-    if len(found) > 0:
+    commas_per_sentence = round(text.count(",") / sentence_count, 1)
+    if commas_per_sentence < 2.0:
         return None
     return {
-        "name": "No contractions",
-        "explanation": "People usually write 'don't' or 'it's' at least once in a long text. AI text often avoids them.",
-        "evidence": ["0 contractions in " + str(word_count) + " words"],
-        "points": 10,
+        "name": "Comma-heavy sentences",
+        "explanation": "AI text tends to pack several clauses into every sentence, so it uses many commas.",
+        "evidence": [str(commas_per_sentence) + " commas per sentence (2.0 or more)"],
+        "points": 15,
+    }
+
+
+def check_filler_words(text):
+    words = get_words(text)
+    if len(words) < 80:
+        return None
+    count = 0
+    for word in words:
+        if word.lower() in FILLER_WORDS:
+            count += 1
+    share = round(100 * count / len(words), 1)
+    if share < 2.5:
+        return None
+    return {
+        "name": "Filler words",
+        "explanation": "Words like 'various', 'crucial' and 'typically' add little meaning. Older AI models use them a lot; newer ones much less.",
+        "evidence": [str(share) + "% of the words are filler words (2.5% or more)"],
+        "points": 15,
     }
 
 
@@ -156,10 +153,10 @@ def describe_score(score):
 def analyze_ai(text):
     checks = [
         check_uniform_sentences,
-        check_stock_phrases,
-        check_transition_openers,
+        check_no_short_sentences,
         check_lists_of_three,
-        check_no_contractions,
+        check_comma_heavy,
+        check_filler_words,
     ]
     signals = []
     for check in checks:

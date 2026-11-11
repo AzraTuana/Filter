@@ -11,7 +11,7 @@ BENCHMARK_URL = "https://huggingface.co/datasets/textsightai/ai-text-detection-b
 
 RESULTS_FILE = "evaluation/results.md"
 SAMPLE_SIZE = 1000
-THRESHOLDS = [10, 30, 40, 70]
+THRESHOLDS = [15, 30, 40, 55, 70]
 
 
 def download(url, file_name):

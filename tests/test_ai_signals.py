@@ -1,4 +1,12 @@
-from analyzers.ai_signals import check_stock_phrases, check_uniform_sentences, split_sentences
+from analyzers.ai_signals import (
+    check_comma_heavy,
+    check_filler_words,
+    check_no_short_sentences,
+    check_uniform_sentences,
+    split_sentences,
+)
+
+LONG_SENTENCE = "The committee reviewed the proposal in great detail before it reached a final decision on the matter."
 
 
 def test_split_sentences():
@@ -15,5 +23,36 @@ def test_varied_sentences_are_not_flagged():
     assert check_uniform_sentences(text) is None
 
 
-def test_one_stock_phrase_is_not_enough():
-    assert check_stock_phrases("Let us delve into the topic.") is None
+def test_only_long_sentences_are_flagged():
+    text = " ".join([LONG_SENTENCE] * 4)
+    assert check_no_short_sentences(text) is not None
+
+
+def test_one_short_sentence_is_enough_to_pass():
+    text = " ".join([LONG_SENTENCE] * 4) + " It passed."
+    assert check_no_short_sentences(text) is None
+
+
+def test_too_few_sentences_are_not_checked():
+    assert check_no_short_sentences(LONG_SENTENCE) is None
+
+
+def test_many_commas_are_flagged():
+    sentence = "The plan, which was new, bold, and risky, passed."
+    text = " ".join([sentence] * 4)
+    assert check_comma_heavy(text) is not None
+
+
+def test_few_commas_are_not_flagged():
+    text = "We met on Monday. The plan passed. Nobody objected, which was a surprise. Then we left."
+    assert check_comma_heavy(text) is None
+
+
+def test_many_filler_words_are_flagged():
+    text = "It is important to use various key tools because they can often help. " * 8
+    assert check_filler_words(text) is not None
+
+
+def test_plain_text_has_no_filler_signal():
+    text = "The train left the station at nine and reached the coast before noon. " * 8
+    assert check_filler_words(text) is None
