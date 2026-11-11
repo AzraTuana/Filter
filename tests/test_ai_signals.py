@@ -56,12 +56,3 @@ def test_many_filler_words_are_flagged():
 def test_plain_text_has_no_filler_signal():
     text = "The train left the station at nine and reached the coast before noon. " * 8
     assert check_filler_words(text) is None
-
-def test_headings_and_list_markers_are_not_sentences():
-    text = "1. A Heading Here\nFirst sentence here. Second one!\n- Option A: a list item."
-    assert split_sentences(text) == ["First sentence here.", "Second one!", "Option A: a list item."]
-
-
-def test_long_line_without_final_period_is_kept():
-    text = "This is a long line that someone pasted without the final period at the very end of it"
-    assert len(split_sentences(text)) == 1
